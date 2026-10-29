@@ -1,0 +1,173 @@
+# P2I App Lab
+
+One brief queues three independently generated todo frontends: List, Kanban and
+Daily Focus. Each uses the same verified Rust/Axum implementation, a separate
+in-memory backend process, and an OpenAPI-generated TypeScript SDK with Zod runtime
+response validation. The first slice supports this constrained experiment only.
+
+**Status:** implementation with local validation; consult [VALIDATION.md](docs/VALIDATION.md)
+for the exact tested boundaries. A passed local template or fake-provider test is
+not an autonomous Qwen run or a GPU throughput measurement.
+
+## Start on the existing GPU VM
+
+Use the existing bootstrap first if this is a fresh VM. Do not reinstall drivers
+or replace a working model merely to install App Lab. Run directly as root:
+
+```bash
+cd /home/user/my-applications/qwen-gpu-bootstrap
+bash scripts/app-lab.sh setup
+bash scripts/app-lab.sh up
+```
+
+Setup checks Node 24, Docker and the existing provider config; installs locked
+controller dependencies; builds a pinned toolchain image; and runs actual Rust,
+production frontend, HTTP and browser checks in a container. It fails if those
+checks fail. It does not fabricate a verified baseline to allow deployment.
+
+The default provider config is `/root/.local/share/qwen-bootstrap/opencode.json`.
+Override `P2I_OPENCODE_CONFIG` if needed. The existing local model configuration
+and limits are retained. State lives at
+`/home/user/my-applications/p2i-app-lab-state`; override `P2I_STATE` consistently
+for every command. `P2I_IMAGE` and `P2I_MODEL_CONTAINER` can name the actual image
+and serving container. The supported initial integration is the bootstrap's
+`qwen-coder` container serving privately on host port 8000.
+
+Forward **5173, 5181, 5182 and 5183** in VS Code Remote SSH's Ports panel. Open
+`http://localhost:5173` on your Mac. Submit the brief in the dashboard. It creates
+three variants from one basic frontend; their final implementations are not baked
+into this repository. Only actual independent checks can mark a variant passed.
+Application data lasts until its backend restarts.
+
+The controller is managed by systemd. Closing VS Code or disconnecting SSH leaves
+it running. Reconnect and open the same dashboard to inspect the persisted run.
+A controller crash/restart cancels abandoned workers and marks unfinished work
+interrupted; it does **not** pretend to restore agent processes. Verified previews
+remain available until stopped. A new run requires stopping previous previews
+because the first slice uses three fixed private ports.
+
+## Qualify and compare concurrent work
+
+Start with the working profile. If it is limited to one sequence:
+
+```bash
+bash scripts/app-lab.sh qualify --enable-two
+bash scripts/app-lab.sh up
+bash scripts/app-lab.sh benchmark
+```
+
+Qualification stops the managed model container, preserves it as
+`qwen-coder-p2i-backup`, and creates a copy changing only `--max-num-seqs` to two.
+It keeps the image, model/revision, context, memory, GPU requests, mounts, private
+port bindings and environment. It probes two simultaneous inference requests and
+requires server metrics to show at least two running sequences. Failure restores
+the old container. Do not run this while another application depends on uninterrupted
+model availability. If the current profile already supports two, use `qualify`
+without `--enable-two`. Missing metrics cannot silently qualify concurrency.
+
+The dashboard enables two workers only for the qualified image/command. The
+benchmark is another systemd job: SSH disconnection does not kill it. It runs the
+same brief and three variants with one worker, stops those previews, then repeats
+with two workers. Inspect `comparison.json` in the state directory and:
+
+```bash
+journalctl -fu p2i-app-lab-benchmark
+```
+
+This is an exploratory comparison, sequential first. Each variant has a fresh
+workspace, but shared model/dependency caches are not reset; order effects remain.
+Each run has its own 60-minute maximum, so the full comparison can take two hours.
+Report passed variants/hour, wall time, attempts, tokens when available and user
+interventions. GPU metrics and private gateway request timings are recorded under
+`metrics/`. Overlapping HTTP requests can include queued work; the qualification
+metrics are the separate proof of simultaneous running sequences. Missing data is
+null/unavailable, not zero. No utilization percentage or speedup is guaranteed.
+
+## Verification and permissions
+
+* Host administration supports root. OpenCode executes as UID 10001 in a container.
+  Only `frontend/src` is writable. Its project permissions are preauthorized.
+  It gets no host home, SSH keys, Docker socket or original model API key.
+* Workers use an internal Docker network and a private streaming inference gateway.
+  The gateway holds the model key and records timings/usage, not prompts or keys.
+  OpenCode/provider caches and toolchains are warmed during image build using a
+  **fake** endpoint, explicitly separate from model validation.
+* Generated code builds in a fresh container with no model network. It exits before
+  evaluation. The application then runs in a read-only container with a trusted
+  backend binary. A separate evaluator container owns the tests and evidence; the
+  application cannot mount or rewrite them. Runtime and evaluator share only a
+  dedicated internal network.
+* Captures accept bounded ordinary source files, reject symlinks/special files,
+  and reconstruct protected content from the template. Source fingerprints and
+  protected hashes are recorded. Tests require four executed, passing cases with
+  no skips, omissions or retries. Build-only results cannot produce a passed job.
+* The fixed cases cover HTTP CRUD/validation, browser CRUD/refresh, variant-specific
+  behavior, and malformed-response rejection. Rust gates, client regeneration,
+  TypeScript, production build and backend restart checks are additional gates.
+* A 60-minute run budget includes all jobs. Generation stops five minutes before
+  the deadline; each variant has one initial attempt plus at most three repairs.
+  Unchanged repeated failures stop early. Environment failures do not trigger
+  speculative application changes. Only verified candidates get preview links;
+  partial/failed source and logs remain available in the state directory.
+
+The platform owns process lifetimes, readiness, exit codes and cleanup. The model
+does not manage background servers with fragile temporary-shell commands. Required
+public UI labels and variant behavior are documented in `template/AGENTS.md`.
+
+## Local development and exact-commit deployment
+
+Use Node 24.19.0+ within major 24, Rust 1.90+ with rustfmt/clippy, and the locked
+dependencies. Local native verification is for the trusted template; untrusted
+model candidates use the isolated Docker path above.
+
+```bash
+cd app-lab
+npm ci
+npm --prefix template/frontend ci
+npx playwright install chromium
+cargo build --release --locked --manifest-path ../tools/rust-loop/Cargo.toml
+npm run generate
+npm run typecheck
+npm test
+npm run verify
+node src/local-faults.ts
+```
+
+After committing and pushing a reviewed branch, deploy its exact current commit:
+
+```bash
+bash scripts/deploy-app-lab.sh vast-server
+```
+
+The SSH alias must identify your actual VM. Deployment creates an independent
+release checkout under `/home/user/my-applications/p2i-app-lab-releases/<commit>`;
+it refuses to overwrite edited releases. The current-release symlink and service
+move only after setup checks. If service startup fails, it attempts to restart the
+previous release. Neither script changes the existing bootstrap stages.
+
+## Status, stop and rollback
+
+```bash
+bash scripts/app-lab.sh status
+bash scripts/app-lab.sh logs
+bash scripts/app-lab.sh stop
+# Restore the serving profile saved by qualify --enable-two:
+bash scripts/app-lab.sh rollback
+```
+
+Stop cancels workers and removes previews while retaining artifacts and the model
+service. Rollback additionally restores the original saved model container; it
+requires that backup to exist. For a code rollback, run `up` from the previous
+release checkout. Do not rerun stage 2 while a qualification backup is active.
+State and evidence may contain project source/prompts; keep the directory private.
+
+## Sources checked during implementation
+
+* [OpenCode CLI](https://opencode.ai/docs/cli/) — noninteractive runs; the installed
+  pinned binary's help is checked for `--auto` during image construction.
+* [Hey API Zod](https://heyapi.dev/docs/openapi/typescript/plugins/zod) — runtime
+  response validators, verified by an actual malformed-response browser test.
+* [MUI Next integration](https://mui.com/material-ui/integrations/nextjs/) — App
+  Router cache provider; compatible new template dependencies are locked.
+* [vLLM optimization](https://docs.vllm.ai/en/v0.32.0/configuration/optimization/) —
+  concurrency/cache tradeoffs. Original serving pins remain in `versions.env`.

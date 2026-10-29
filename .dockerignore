@@ -1,0 +1,10 @@
+.git
+.cache
+**/node_modules
+**/target
+**/.next
+**/.p2i
+**/.cache
+**/.rust-loop
+**/*.tsbuildinfo
+**/test-results

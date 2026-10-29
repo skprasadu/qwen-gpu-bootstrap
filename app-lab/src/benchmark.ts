@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { labRoot } from "./generate.ts";
 import { atomicJson } from "./files.ts";
 import type { Run } from "./engine.ts";
+import { summarizeRequests } from "./request-metrics.ts";
 const state = resolve(process.env.P2I_STATE ?? join(labRoot, ".p2i"));
 const base = "http://127.0.0.1:5173";
 const brief =
@@ -42,19 +43,10 @@ for (const concurrency of [1, 2]) {
   }
   const elapsed = (run.finishedAt ?? Date.now()) - run.createdAt;
   const passed = run.jobs.filter((j) => j.status === "passed").length;
-  let requests: any[] = [];
+  let requestLog: string | null = null;
   try {
-    requests = (await readFile(join(state, "metrics/requests.jsonl"), "utf8"))
-      .trim()
-      .split("\n")
-      .map((l) => JSON.parse(l))
-      .filter((r) => r.run === run.id && r.route === "v1/chat/completions");
+    requestLog = await readFile(join(state, "metrics/requests.jsonl"), "utf8");
   } catch {}
-  const available = requests.filter((r) => r.usage);
-  const tokens =
-    available.length === requests.length && requests.length > 0
-      ? available.reduce((sum, r) => sum + (r.usage.total_tokens ?? 0), 0)
-      : null;
   records.push({
     run: run.id,
     concurrency,
@@ -62,9 +54,7 @@ for (const concurrency of [1, 2]) {
     elapsedMs: elapsed,
     passed,
     passedPerHour: passed / (elapsed / 3_600_000),
-    tokens,
-    requests: requests.length,
-    overlappingRequests: requests.some((r) => r.activeAtStart >= 2),
+    ...summarizeRequests(requestLog, run.id),
     interventions: run.interventions,
     jobs: run.jobs.map((j) => ({
       variant: j.variant,

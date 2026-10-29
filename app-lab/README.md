@@ -66,6 +66,8 @@ requires server metrics to show at least two running sequences. Failure restores
 the old container. Do not run this while another application depends on uninterrupted
 model availability. If the current profile already supports two, use `qualify`
 without `--enable-two`. Missing metrics cannot silently qualify concurrency.
+The startup probe uses two short 512-token completions. It establishes overlap
+for that probe; the subsequent app run measures actual long-context workload behavior.
 
 The dashboard enables two workers only for the qualified image/command. The
 benchmark is another systemd job: SSH disconnection does not kill it. It runs the

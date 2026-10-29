@@ -379,6 +379,8 @@ export class DockerAdapter implements Adapter {
           "-v",
           `${out}:/evidence`,
           "-e",
+          "HOME=/tmp",
+          "-e",
           `FRONTEND_URL=http://${appName}:5173`,
           "-e",
           `BACKEND_URL=http://${appName}:3000`,

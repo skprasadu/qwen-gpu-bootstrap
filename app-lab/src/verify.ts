@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { openSync, closeSync } from "node:fs";
 import { mkdir, readFile, cp } from "node:fs/promises";
-import { resolve, join } from "node:path";
+import { resolve, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
 import { command, readiness, stop } from "./process.ts";
@@ -110,6 +110,7 @@ export async function verify(
       } finally {
         await cp(join(project, "backend/.rust-loop"), join(out, "rust-loop"), {
           recursive: true,
+          filter: (source) => basename(source) !== "target",
         }).catch(() => {});
       }
     });

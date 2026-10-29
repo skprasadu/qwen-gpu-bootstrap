@@ -5,11 +5,12 @@
 ## Passed locally
 
 - Controller TypeScript check.
-- 15 deterministic tests: bounded concurrent scheduling; simultaneous submission
+- 17 deterministic tests: bounded concurrent scheduling; simultaneous submission
   exclusion; code/environment classification; bounded repairs; repeated-failure
   stopping; missing/skipped test rejection; cancellation; deadline; restart
   reconciliation; source protection/symlink rejection; process failure and timeout;
-  serving-profile preservation; dashboard origin/host/concurrency restrictions.
+  serving-profile preservation; dashboard origin/host/concurrency restrictions;
+  honest request/token accounting when measurements are missing or incomplete.
   These use a **fake provider**, not Qwen.
 - Actual trusted template: all five existing rust-loop gates, generated contract
   drift, TypeScript, Next production build, backend/frontend readiness, four

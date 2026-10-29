@@ -8,7 +8,7 @@
 - [x] Local controller/fault tests and actual template verification.
 - [x] Reproducible deployment, GPU qualification and comparison commands implemented.
 - [ ] Linux container validation through CI (local Docker application is incomplete).
-- [ ] Review, commit, push, draft PR.
+- [x] Review, commit, push, draft PR: https://github.com/skprasadu/qwen-gpu-bootstrap/pull/1.
 - [ ] GPU deployment and local-Qwen sequential/concurrent trial (requires reachable target).
 
 Local environment: macOS arm64, Node 24.19.0, Rust 1.92.0. Docker CLI exists;

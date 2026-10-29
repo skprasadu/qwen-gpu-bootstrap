@@ -33,6 +33,8 @@ try {
     skipped: 0,
   });
 } catch (error) {
+  // The controller captures this output for the next repair prompt.
+  console.error(String(error));
   await atomicJson(join(out, "acceptance.json"), {
     passed: false,
     required: 4,

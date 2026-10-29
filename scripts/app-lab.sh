@@ -22,7 +22,7 @@ case "$action" in
   npm --prefix "$LAB" test
   source "$ROOT/versions.env"
   docker build --build-arg "OPENCODE_VERSION=$OPENCODE_VERSION" -f "$LAB/docker/Dockerfile" -t "$P2I_IMAGE" "$ROOT"
-  docker run --rm --network none --read-only --user 0 --shm-size 1g --tmpfs /tmp:rw,size=6g \
+  docker run --rm --network none --read-only --user 0 --shm-size 1g --tmpfs /tmp:rw,exec,size=6g \
     -v "$P2I_STATE/template-check:/evidence" "$P2I_IMAGE" /opt/lab/docker/template-check.sh
   echo 'Setup and actual container template checks passed. Run: bash scripts/app-lab.sh up'
   ;;

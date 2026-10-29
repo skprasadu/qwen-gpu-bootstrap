@@ -30,7 +30,7 @@ jobs:
       - run: docker build -f app-lab/docker/Dockerfile -t p2i-app-lab:ci .
       - run: |
           mkdir -p evidence
-          docker run --rm --network none --read-only --user 0 --shm-size 1g --tmpfs /tmp:rw,size=6g -v "$PWD/evidence:/evidence" p2i-app-lab:ci /opt/lab/docker/template-check.sh
+          docker run --rm --network none --read-only --user 0 --shm-size 1g --tmpfs /tmp:rw,exec,size=6g -v "$PWD/evidence:/evidence" p2i-app-lab:ci /opt/lab/docker/template-check.sh
       - run: if [ -d evidence ]; then sudo chmod -R a+rX evidence; fi
         if: always()
       - uses: actions/upload-artifact@v4

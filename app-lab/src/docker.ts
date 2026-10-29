@@ -280,7 +280,7 @@ export class DockerAdapter implements Adapter {
           "--cpus",
           "4",
           "--tmpfs",
-          "/tmp:rw,size=2g",
+          "/tmp:rw,exec,size=2g",
           "-v",
           `${candidate}:/workspace`,
           "-v",

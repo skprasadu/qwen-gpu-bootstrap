@@ -7,7 +7,7 @@
 - [x] Independent verifier, managed previews, bounded repair and cancellation implementation.
 - [x] Local controller/fault tests and actual template verification.
 - [x] Familiar bootstrap-01 → reboot → bootstrap-02 → bootstrap-03 flow, plus optional comparison/rollback commands.
-- [ ] Linux container validation through CI (local Docker application is incomplete).
+- [x] Linux container validation through CI: controller and actual Docker template checks passed in run 40953921332.
 - [x] Review, commit, push, draft PR: https://github.com/skprasadu/qwen-gpu-bootstrap/pull/1.
 - [ ] User-run milestone after rental: actual local-Qwen generation and sequential/concurrent trial. Outside this implementation session; not claimed tested.
 

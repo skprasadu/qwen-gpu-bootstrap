@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { cloneProfile } from "../src/profile.ts";
 test("concurrency profile preserves image, model, environment, memory, bindings and command order", () => {
   const original = {
+    Image: "sha256:actually-running-image",
     Config: {
-      Image: "pinned@sha256:test",
+      Image: "vllm/vllm-openai:v0.32.0",
       Env: ["VLLM_API_KEY=private"],
       Cmd: [
         "model",
@@ -28,7 +29,7 @@ test("concurrency profile preserves image, model, environment, memory, bindings 
     },
   };
   const copy = cloneProfile(original);
-  assert.equal(copy.Image, original.Config.Image);
+  assert.equal(copy.Image, original.Image);
   assert.deepEqual(copy.Env, original.Config.Env);
   assert.deepEqual(copy.HostConfig, original.HostConfig);
   assert.equal(copy.Cmd[4], "2");

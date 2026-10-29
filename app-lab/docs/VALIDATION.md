@@ -41,17 +41,28 @@ Latest tested template fingerprint before any subsequent change:
 Native evidence is under `app-lab/.p2i/template-check/`; it is intentionally ignored
 by Git because it contains machine-specific paths. CI uploads its own evidence.
 
-## Pending external validation
+## Passed in Linux CI
 
 - Local Docker is unavailable: its macOS application executable is missing and
-  no daemon socket is available. A GitHub Actions job builds the Linux image,
-  warms the pinned OpenCode provider against a fake endpoint, and runs the real
-  template checks in Docker. See PR checks for its actual outcome.
+  no daemon socket is available. Instead, [GitHub Actions run 40953921332](https://github.com/skprasadu/qwen-gpu-bootstrap/actions/runs/40953921332)
+  passed both jobs at commit `0d263a2ba58b47a1536025826f01ac8a134d2762`:
+  controller typecheck/17 tests, Linux image build, pinned OpenCode warmup against
+  a fake endpoint, and actual template verification in a read-only, offline container.
+- The container used Rust 1.90.0 and Node 24.19.0. Template verification includes
+  the five Rust gates, OpenAPI/client drift, TypeScript, production build, real
+  HTTP and browser acceptance, malformed-response validation and restart/reset.
+- CI exposed and resolved container-specific packaging failures: Rust scratch
+  storage needed executable mounts, and Chromium needed a temporary writable home.
+  The full original container check passed after those fixes. Required checks were
+  retained. CI artifacts include gate logs and browser screenshots.
+
+## Pending user-run GPU validation
+
 - The user will rent the GPU and run stages 01, 02 and 03 themselves. No GPU
   deployment, local-Qwen tool-edit/repair run, two-sequence qualification,
   SSH-disconnect trial, or throughput comparison has been claimed.
-- Production controller isolation, streaming cancellation and exact-commit
-  bootstrap startup still require a real Docker/GPU environment. Unit tests do not
+- Production worker/controller integration, streaming cancellation and systemd
+  bootstrap startup still require the target VM. Unit tests do not
   establish these integration outcomes.
 
 The code implements safe interruption reporting rather than transparent restoration

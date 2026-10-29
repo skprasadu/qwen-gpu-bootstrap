@@ -5,6 +5,8 @@ import { readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 export function cloneProfile(inspect: any) {
   const config = structuredClone(inspect.Config);
+  // Reuse the running image even if its original registry tag has moved locally.
+  config.Image = inspect.Image;
   const args: string[] = [...(config.Cmd ?? [])];
   const index = args.indexOf("--max-num-seqs");
   if (index < 0 || !args[index + 1])

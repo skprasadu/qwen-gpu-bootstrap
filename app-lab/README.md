@@ -5,7 +5,7 @@ Daily Focus. Each uses the same verified Rust/Axum implementation, a separate
 in-memory backend process, and an OpenAPI-generated TypeScript SDK with Zod runtime
 response validation. The first slice supports this constrained experiment only.
 
-**Status:** implementation with local validation; consult [VALIDATION.md](docs/VALIDATION.md)
+**Status:** local and Linux container checks passed; consult [VALIDATION.md](docs/VALIDATION.md)
 for the exact tested boundaries. A passed local template or fake-provider test is
 not an autonomous Qwen run or a GPU throughput measurement.
 

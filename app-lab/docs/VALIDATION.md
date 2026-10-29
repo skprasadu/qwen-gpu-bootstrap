@@ -46,11 +46,11 @@ by Git because it contains machine-specific paths. CI uploads its own evidence.
   no daemon socket is available. A GitHub Actions job builds the Linux image,
   warms the pinned OpenCode provider against a fake endpoint, and runs the real
   template checks in Docker. See PR checks for its actual outcome.
-- The saved Vast SSH target refused connections. The current GPU target has been
-  requested. No GPU deployment, local-Qwen tool-edit/repair run, two-sequence
-  qualification, SSH-disconnect trial, or throughput comparison has been claimed.
+- The user will rent the GPU and run stages 01, 02 and 03 themselves. No GPU
+  deployment, local-Qwen tool-edit/repair run, two-sequence qualification,
+  SSH-disconnect trial, or throughput comparison has been claimed.
 - Production controller isolation, streaming cancellation and exact-commit
-  deployment still require a reachable Docker/GPU environment. Unit tests do not
+  bootstrap startup still require a real Docker/GPU environment. Unit tests do not
   establish these integration outcomes.
 
 The code implements safe interruption reporting rather than transparent restoration

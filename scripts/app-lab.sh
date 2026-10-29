@@ -5,6 +5,7 @@ LAB="$ROOT/app-lab"
 export PATH="${HOME}/.local/bin:${HOME}/.cargo/bin:$PATH"
 export P2I_STATE="${P2I_STATE:-/home/user/my-applications/p2i-app-lab-state}"
 export P2I_IMAGE="${P2I_IMAGE:-p2i-app-lab:local}"
+export P2I_MODEL_CONTAINER="${P2I_MODEL_CONTAINER:-qwen-coder}"
 export P2I_OPENCODE_CONFIG="${P2I_OPENCODE_CONFIG:-${HOME}/.local/share/qwen-bootstrap/opencode.json}"
 action=${1:-status}
 shift || true
@@ -29,7 +30,7 @@ case "$action" in
   [[ $(id -u) == 0 ]] || { echo 'Run as root on the GPU VM.' >&2; exit 1; }
   unit=/etc/systemd/system/p2i-app-lab.service
   if [[ -f "$unit" ]] && ! grep -q '# Managed by P2I App Lab' "$unit"; then echo 'Refusing to replace an unrelated systemd unit.' >&2; exit 1; fi
-  for value in "$LAB" "$P2I_STATE" "$P2I_IMAGE" "$P2I_OPENCODE_CONFIG"; do [[ "$value" != *$'\n'* && "$value" != *'"'* ]] || { echo 'Unsupported quote/newline in configuration path.' >&2; exit 1; }; done
+  for value in "$LAB" "$P2I_STATE" "$P2I_IMAGE" "$P2I_OPENCODE_CONFIG" "$P2I_MODEL_CONTAINER"; do [[ "$value" != *$'\n'* && "$value" != *'"'* ]] || { echo 'Unsupported quote/newline in configuration path.' >&2; exit 1; }; done
   cat > "$unit" <<EOF
 # Managed by P2I App Lab
 [Unit]
@@ -43,6 +44,7 @@ WorkingDirectory=$LAB
 Environment="PATH=$PATH"
 Environment="P2I_STATE=$P2I_STATE"
 Environment="P2I_IMAGE=$P2I_IMAGE"
+Environment="P2I_MODEL_CONTAINER=$P2I_MODEL_CONTAINER"
 Environment="P2I_OPENCODE_CONFIG=$P2I_OPENCODE_CONFIG"
 ExecStart="$(command -v node)" "$LAB/src/server.ts"
 Restart=on-failure

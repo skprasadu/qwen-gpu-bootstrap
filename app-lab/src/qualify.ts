@@ -26,6 +26,11 @@ if (process.argv.includes("--rollback")) {
   process.exit(0);
 }
 let changed = false;
+await atomicJson(join(state, "qualification.json"), {
+  passed: false,
+  at: Date.now(),
+  status: "qualification in progress",
+});
 try {
   let inspect = JSON.parse(await command("docker", ["inspect", name]))[0];
   const i = inspect.Config.Cmd.indexOf("--max-num-seqs");

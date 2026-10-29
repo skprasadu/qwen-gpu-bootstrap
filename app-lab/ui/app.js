@@ -8,6 +8,7 @@ const escape = (s) =>
       ],
   );
 const names = { list: "Simple List", kanban: "Kanban", focus: "Daily Focus" };
+let capacityConfigured = false;
 async function api(path, body) {
   const response = await fetch(
     path,
@@ -30,6 +31,10 @@ function error(e) {
 async function refresh() {
   const { runs, maximumConcurrency } = await api("/api/runs");
   $("concurrency").options[1].disabled = maximumConcurrency < 2;
+  if (!capacityConfigured) {
+    $("concurrency").value = String(maximumConcurrency);
+    capacityConfigured = true;
+  }
   if (maximumConcurrency < 2) $("concurrency").value = "1";
   $("capacity").textContent =
     maximumConcurrency === 2

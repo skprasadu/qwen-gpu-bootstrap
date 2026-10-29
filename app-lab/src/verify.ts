@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { openSync, closeSync } from "node:fs";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, cp } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
@@ -94,19 +94,25 @@ export async function verify(
     const rustLoop =
       process.env.RUST_LOOP_BIN ??
       join(labRoot, "../tools/rust-loop/target/release/rust-loop");
-    await gate("rust-loop", () =>
-      command(
-        rustLoop,
-        [
-          "check",
-          "--project",
-          join(project, "backend"),
-          "--timeout-secs",
-          "300",
-        ],
-        { log: join(out, "rust-loop.log"), signal },
-      ),
-    );
+    await gate("rust-loop", async () => {
+      try {
+        await command(
+          rustLoop,
+          [
+            "check",
+            "--project",
+            join(project, "backend"),
+            "--timeout-secs",
+            "300",
+          ],
+          { log: join(out, "rust-loop.log"), signal },
+        );
+      } finally {
+        await cp(join(project, "backend/.rust-loop"), join(out, "rust-loop"), {
+          recursive: true,
+        }).catch(() => {});
+      }
+    });
     await gate("contract-drift", () => generate(project, true, signal));
     category = "code";
     await gate("typescript", () =>

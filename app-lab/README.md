@@ -11,19 +11,20 @@ not an autonomous Qwen run or a GPU throughput measurement.
 
 ## Start on the existing GPU VM
 
-Use the existing bootstrap first if this is a fresh VM. Do not reinstall drivers
-or replace a working model merely to install App Lab. Run directly as root:
+On a fresh VM, follow the [root quickstart](../README.md): stage 01, reboot,
+stage 02, then stage 03. If stages 01 and 02 already work, run directly as root:
 
 ```bash
 cd /home/user/my-applications/qwen-gpu-bootstrap
-bash scripts/app-lab.sh setup
-bash scripts/app-lab.sh up
+bash bootstrap-03.sh
 ```
 
 Setup checks Node 24, Docker and the existing provider config; installs locked
 controller dependencies; builds a pinned toolchain image; and runs actual Rust,
 production frontend, HTTP and browser checks in a container. It fails if those
-checks fail. It does not fabricate a verified baseline to allow deployment.
+checks fail. Stage 03 then qualifies two-request capacity with rollback and starts
+the dashboard. Set `P2I_QUALIFY_TWO=0` to skip the capacity experiment. The lower-level
+`bash scripts/app-lab.sh setup` and `up` commands remain available for diagnostics.
 
 The default provider config is `/root/.local/share/qwen-bootstrap/opencode.json`.
 Override `P2I_OPENCODE_CONFIG` if needed. The existing local model configuration
@@ -48,7 +49,8 @@ because the first slice uses three fixed private ports.
 
 ## Qualify and compare concurrent work
 
-Start with the working profile. If it is limited to one sequence:
+Stage 03 attempts qualification automatically. To retry it separately if the
+dashboard still shows one worker:
 
 ```bash
 bash scripts/app-lab.sh qualify --enable-two
@@ -114,7 +116,7 @@ The platform owns process lifetimes, readiness, exit codes and cleanup. The mode
 does not manage background servers with fragile temporary-shell commands. Required
 public UI labels and variant behavior are documented in `template/AGENTS.md`.
 
-## Local development and exact-commit deployment
+## Local development and pulling updates
 
 Use Node 24.19.0+ within major 24, Rust 1.90+ with rustfmt/clippy, and the locked
 dependencies. Local native verification is for the trusted template; untrusted
@@ -133,17 +135,19 @@ npm run verify
 node src/local-faults.ts
 ```
 
-After committing and pushing a reviewed branch, deploy its exact current commit:
+On your rented VM, pull the App Lab branch and rerun stage 03 to update it:
 
 ```bash
-bash scripts/deploy-app-lab.sh vast-server
+bash scripts/app-lab.sh stop
+git pull --ff-only origin feat/p2i-app-lab
+bash bootstrap-03.sh
 ```
 
-The SSH alias must identify your actual VM. Deployment creates an independent
-release checkout under `/home/user/my-applications/p2i-app-lab-releases/<commit>`;
-it refuses to overwrite edited releases. The current-release symlink and service
-move only after setup checks. If service startup fails, it attempts to restart the
-previous release. Neither script changes the existing bootstrap stages.
+Stop existing work before updating; saved source and evidence remain in the
+separate state directory. A fast-forward-only pull refuses conflicting local
+changes. Stages 01 and 02 are not needed for an App Lab-only update. The user runs
+these commands after rental; no SSH credentials or assistant-led deployment are
+required for this iteration.
 
 ## Status, stop and rollback
 
@@ -157,8 +161,9 @@ bash scripts/app-lab.sh rollback
 
 Stop cancels workers and removes previews while retaining artifacts and the model
 service. Rollback additionally restores the original saved model container; it
-requires that backup to exist. For a code rollback, run `up` from the previous
-release checkout. Do not rerun stage 2 while a qualification backup is active.
+requires that backup to exist. For a code rollback, use a separate checkout of the
+previous commit and run stage 03 with `P2I_QUALIFY_TWO=0`. Do not rerun stage 2
+while a qualification backup is active.
 State and evidence may contain project source/prompts; keep the directory private.
 
 ## Sources checked during implementation

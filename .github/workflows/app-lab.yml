@@ -1,9 +1,9 @@
 name: App Lab
 on:
   push:
-    paths: ['app-lab/**', 'scripts/*app-lab*', 'tools/rust-loop/**', '.github/workflows/app-lab.yml', '.dockerignore']
+    paths: ['app-lab/**', 'scripts/*app-lab*', 'bootstrap-03.sh', 'tools/rust-loop/**', '.github/workflows/app-lab.yml', '.dockerignore']
   pull_request:
-    paths: ['app-lab/**', 'scripts/*app-lab*', 'tools/rust-loop/**', '.github/workflows/app-lab.yml', '.dockerignore']
+    paths: ['app-lab/**', 'scripts/*app-lab*', 'bootstrap-03.sh', 'tools/rust-loop/**', '.github/workflows/app-lab.yml', '.dockerignore']
 permissions:
   contents: read
 concurrency:
@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: app-lab/package-lock.json
       - run: npm ci && npm run typecheck && npm test
         working-directory: app-lab
-      - run: bash -n scripts/app-lab.sh scripts/deploy-app-lab.sh app-lab/docker/*.sh
+      - run: bash -n bootstrap-03.sh scripts/app-lab.sh app-lab/docker/*.sh
   container-template:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -31,6 +31,8 @@ jobs:
       - run: |
           mkdir -p evidence
           docker run --rm --network none --read-only --user 0 --shm-size 1g --tmpfs /tmp:rw,size=6g -v "$PWD/evidence:/evidence" p2i-app-lab:ci /opt/lab/docker/template-check.sh
+      - run: if [ -d evidence ]; then sudo chmod -R a+rX evidence; fi
+        if: always()
       - uses: actions/upload-artifact@v4
         if: always()
         with:

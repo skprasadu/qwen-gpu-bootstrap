@@ -1,0 +1,9 @@
+[package]
+name = "rust-loop"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.90"
+description = "Bounded Rust compiler/check/repair loop using the local OpenCode client"
+license = "MIT"
+
+[dependencies]

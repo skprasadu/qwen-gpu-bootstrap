@@ -1,0 +1,32 @@
+# Local credentials and environment (keep documented examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+api-key
+server.env
+
+# Build output and installed dependencies
+target/
+node_modules/
+
+# Python bytecode, virtual environments and test caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Generated runtime state, model caches and logs
+.rust-loop/
+.cache/
+cache/
+logs/
+*.log
+AGENTS.md.before-*
+
+# Local editor and operating-system files
+.DS_Store
+*.swp
+*.swo
+*~

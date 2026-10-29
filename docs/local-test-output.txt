@@ -1,0 +1,58 @@
+V0.2.0 CPU VALIDATION (no model/GPU inference)
+
+root-tests-final.log
+test_direct_root (__main__.RootLogin.test_direct_root) ... ok
+test_no_privilege_dispatch_left (__main__.RootLogin.test_no_privilege_dispatch_left) ... ok
+test_nonroot_sudo_user_is_ignored (__main__.RootLogin.test_nonroot_sudo_user_is_ignored) ... ok
+test_sudo_environment_does_not_change_root_install (__main__.RootLogin.test_sudo_environment_does_not_change_root_install) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.016s
+
+OK
+
+local-tests-v2-final.log
+test_config_idempotent_private (__main__.Local.test_config_idempotent_private) ... ok
+test_host_preflight_before_mutation (__main__.Local.test_host_preflight_before_mutation) ... ok
+test_new_app_refuses_existing (__main__.Local.test_new_app_refuses_existing) ... ok
+test_shell_syntax (__main__.Local.test_shell_syntax) ... ok
+test_tool_evidence_rejects_prose_and_accepts_completed_edit (__main__.Local.test_tool_evidence_rejects_prose_and_accepts_completed_edit) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.168s
+
+OK
+
+rust-loop-tests-final.log
+test_attempt_budget_preserves_original (__main__.Loop.test_attempt_budget_preserves_original) ... ok
+test_behavior_repair_requires_tests (__main__.Loop.test_behavior_repair_requires_tests) ... ok
+test_check_clean (__main__.Loop.test_check_clean) ... ok
+test_check_failing_preserves_original (__main__.Loop.test_check_failing_preserves_original) ... ok
+test_clippy_warning_repaired (__main__.Loop.test_clippy_warning_repaired) ... ok
+test_compiler_repair_passes_all_gates (__main__.Loop.test_compiler_repair_passes_all_gates) ... ok
+test_concurrent_edit_preserved (__main__.Loop.test_concurrent_edit_preserved) ... ok
+test_format_repair_without_model (__main__.Loop.test_format_repair_without_model) ... ok
+test_inline_test_file_frozen (__main__.Loop.test_inline_test_file_frozen) ... ok
+test_manifest_change_rejected (__main__.Loop.test_manifest_change_rejected) ... ok
+test_model_timeout_preserves_source (__main__.Loop.test_model_timeout_preserves_source) ... ok
+test_new_source_file_rejected (__main__.Loop.test_new_source_file_rejected) ... ok
+test_no_progress_bounded (__main__.Loop.test_no_progress_bounded) ... ok
+test_no_tests_is_not_a_pass (__main__.Loop.test_no_tests_is_not_a_pass) ... ok
+test_symlink_rejected (__main__.Loop.test_symlink_rejected) ... ok
+test_test_tampering_rejected (__main__.Loop.test_test_tampering_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 27.463s
+
+OK
+
+upgrade-tests-final.log
+test_enable_preserves_app_and_is_idempotent (__main__.Upgrade.test_enable_preserves_app_and_is_idempotent) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.054s
+
+OK
+
+Rust controller: cargo fmt --check and cargo clippy --all-targets -- -D warnings PASS.
+Actual OpenCode 1.19.5: nested repair config/permissions parse PASS.

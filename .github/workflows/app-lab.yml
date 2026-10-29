@@ -1,6 +1,7 @@
 name: App Lab
 on:
   push:
+    branches: [main]
     paths: ['app-lab/**', 'scripts/*app-lab*', 'bootstrap-03.sh', 'tools/rust-loop/**', '.github/workflows/app-lab.yml', '.dockerignore']
   pull_request:
     paths: ['app-lab/**', 'scripts/*app-lab*', 'bootstrap-03.sh', 'tools/rust-loop/**', '.github/workflows/app-lab.yml', '.dockerignore']

@@ -104,7 +104,7 @@ try {
                 content: `Probe ${index}: Explain 100 useful frontend accessibility checks in detail.`,
               },
             ],
-            max_tokens: 512,
+            max_tokens: Number(process.env.P2I_PROBE_TOKENS ?? 512),
             temperature: 0,
             stream: false,
           }),

@@ -69,3 +69,11 @@ The code implements safe interruption reporting rather than transparent restorat
 of a live OpenCode process. Failed/partial sources and evidence are retained; this
 slice publishes previews only after all required checks pass. Operator actions
 outside the controller cannot be inferred from the recorded intervention counter.
+
+## Blackwell tuning update
+Local TypeScript check, shell syntax and 19 controller/transaction tests passed.
+New tests verify graph/batch argument preservation, duplicate flag rejection,
+startup failure rollback and refusal to delete an unrelated replacement container.
+These Docker operations use a fake adapter; no GPU, Docker startup, systemd tuning
+or measured throughput claim is made from these local tests. The GPU-side tune
+command records real qualification evidence and rejects unqualified profiles.

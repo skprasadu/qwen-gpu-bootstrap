@@ -65,11 +65,27 @@ EOF
  logs) journalctl -u p2i-app-lab -f; ;;
  stop) systemctl stop p2i-app-lab; node "$LAB/src/cleanup.ts"; ;;
  qualify) node "$LAB/src/qualify.ts" "$@"; ;;
+ tune|tune-restore)
+  # Require a reachable, idle controller before taking it offline.
+  node --input-type=module -e 'const r=await fetch("http://127.0.0.1:5173/api/runs"); if(!r.ok)throw Error("Dashboard unavailable"); const d=await r.json(); if(d.runs.some(r=>r.state==="running"))throw Error("Wait for the current run to finish before tuning")'
+  systemd-run --unit=p2i-app-lab-tune --collect --property="WorkingDirectory=$ROOT" \
+    --setenv="PATH=$PATH" --setenv="P2I_STATE=$P2I_STATE" --setenv="P2I_IMAGE=$P2I_IMAGE" \
+    --setenv="P2I_OPENCODE_CONFIG=$P2I_OPENCODE_CONFIG" --setenv="P2I_MODEL_CONTAINER=$P2I_MODEL_CONTAINER" \
+    /bin/bash "$ROOT/scripts/app-lab.sh" tune-worker "$action"
+  echo 'Tuning continues after SSH disconnect. Logs: journalctl -fu p2i-app-lab-tune'
+  ;;
+ tune-worker)
+  systemctl stop p2i-app-lab
+  trap 'bash "$ROOT/scripts/app-lab.sh" up' EXIT
+  if [[ ${1:-} == tune-restore ]]; then node "$LAB/src/tune.ts" --restore;
+  else node "$LAB/src/tune.ts"; fi
+  node "$LAB/src/qualify.ts"
+  ;;
  rollback) systemctl stop p2i-app-lab; node "$LAB/src/cleanup.ts"; node "$LAB/src/qualify.ts" --rollback; ;;
  benchmark)
   systemd-run --unit=p2i-app-lab-benchmark --collect --property="WorkingDirectory=$LAB" \
     --setenv="PATH=$PATH" --setenv="P2I_STATE=$P2I_STATE" "$(command -v node)" "$LAB/src/benchmark.ts"
   echo 'Comparison continues after SSH disconnect. Logs: journalctl -fu p2i-app-lab-benchmark'
   ;;
- *) echo 'Usage: bash scripts/app-lab.sh setup|up|status|logs|stop|qualify [--enable-two]|benchmark|rollback' >&2; exit 2;;
+ *) echo 'Usage: bash scripts/app-lab.sh setup|up|status|logs|stop|qualify [--enable-two]|benchmark|tune|tune-restore|rollback' >&2; exit 2;;
 esac

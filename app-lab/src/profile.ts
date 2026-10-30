@@ -27,7 +27,7 @@ export function cloneProfile(inspect: any) {
     NetworkingConfig: { EndpointsConfig: endpoints },
   };
 }
-async function dockerCreate(name: string, payload: unknown) {
+export async function dockerCreate(name: string, payload: unknown) {
   const endpoint = (
     await command("docker", [
       "context",
@@ -57,6 +57,7 @@ async function dockerCreate(name: string, payload: unknown) {
         });
       },
     );
+    req.setTimeout(30_000, () => req.destroy(new Error("Docker create timed out")));
     req.on("error", reject);
     req.end(JSON.stringify(payload));
   });

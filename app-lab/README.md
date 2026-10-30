@@ -178,3 +178,57 @@ State and evidence may contain project source/prompts; keep the directory privat
   Router cache provider; compatible new template dependencies are locked.
 * [vLLM optimization](https://docs.vllm.ai/en/v0.32.0/configuration/optimization/) —
   concurrency/cache tradeoffs. Original serving pins remain in `versions.env`.
+
+## Blackwell GPU tuning and reconnecting
+
+After the current job finishes, update the existing checkout (no bootstrap01/02
+rerun). Keep completed previews alive: do **not** use `app-lab.sh stop`, rollback,
+or the dashboard's stop-previews action just to disconnect VS Code.
+
+```bash
+cd /home/user/my-applications/qwen-gpu-bootstrap
+git switch feat/p2i-app-lab
+git pull --ff-only
+bash scripts/app-lab.sh tune
+journalctl -fu p2i-app-lab-tune
+```
+
+`tune` requires a reachable idle dashboard. It runs in systemd, so closing VS Code
+or pressing Ctrl-C in the log viewer does not cancel it. The dashboard is offline
+during tuning; existing previews remain running. On completion it restarts the
+controller. Check `systemctl status p2i-app-lab-tune --no-pager` while active and
+`journalctl -u p2i-app-lab-tune -n 80 --no-pager` for the result after completion.
+The transient unit can disappear after success; the journal and
+`/home/user/my-applications/p2i-app-lab-state/tuning-result.json` retain results.
+
+The sweep preserves the exact running image, weights, memory fraction, context
+length and private network bindings. At two sequences it compares eager/batch2048,
+graphs/batch2048, then graphs/batch4096. Each profile has a warmup and two scored
+pairs of simultaneous 2048-token maximum requests. It selects a candidate only
+when its lower scored throughput exceeds baseline by 5%, then requalifies it.
+This is synthetic throughput, **not proof of faster app completion**, and fixed
+order/prefix cache effects can bias it. Compilation may take 15 minutes per profile.
+Failed startup/probes are rejected; failure or no improvement restores the original.
+The original model container is kept for `bash scripts/app-lab.sh tune-restore`.
+Do not run bootstrap02, benchmark, qualify or other model changes during tuning.
+Only App Lab jobs are checked; stop any standalone OpenCode inference first.
+
+A hard VM crash/forced termination may leave `private/tuning.lock`. Once
+`p2i-app-lab-tune` is confirmed inactive, remove that **empty directory only** with
+`rmdir`, restart the dashboard with `bash scripts/app-lab.sh up`, and use
+`tune-restore`. Never delete the tuning-profile.json recovery record or backup
+container. A second tuning sweep requires restoring the first backup first.
+
+Reconnect through VS Code Remote SSH. In **Ports → Forward a Port**, add **5173,
+5181, 5182, 5183**. No Vast public port/firewall change is needed. Open
+http://localhost:5173 and use the successful cards' preview links (usually
+http://localhost:5181, http://localhost:5182, http://localhost:5183). If VS Code
+assigns a different local port, use the address it displays. Failed variants have
+no verified preview. Submit a fresh dashboard run to generate three new variants;
+stop old previews using the dashboard when it requests the ports be released.
+SSH disconnection does not reset apps, but restarting their containers resets
+in-memory todos. A VM reboot is different from closing VS Code.
+
+Tuning references: [vLLM 0.32 engine flags](https://docs.vllm.ai/en/v0.32.0/configuration/engine_args/)
+and [chunked prefill tuning](https://docs.vllm.ai/en/v0.32.0/configuration/optimization/).
+No Blackwell measurements are bundled; run this sweep on your GPU for actual results.

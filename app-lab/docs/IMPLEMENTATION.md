@@ -13,3 +13,13 @@
 
 Local environment: macOS arm64, Node 24.19.0, Rust 1.92.0. Docker CLI exists;
 daemon initially unavailable. Existing host services have not been changed.
+
+### Reversible Blackwell tuning
+`app-lab.sh tune` runs an idle-only systemd sweep, preserving previews and the
+running model image digest. Three profiles compare eager/2048, graphs/2048 and
+graphs/4096 at two sequences. Warmup plus two concurrent 2048-token probe pairs
+measure a conservative tokens/sec score; a >5% gain is required to select a trial.
+The transaction journals ownership before mutation and retains the original
+container for rollback. Startup/inference failures restore the original. This is
+synthetic evidence, not an app-throughput guarantee; full application evaluation
+still runs unchanged. No GPU validation was performed locally.

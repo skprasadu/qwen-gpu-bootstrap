@@ -7,7 +7,7 @@ ENV PATH=/usr/local/cargo/bin:$PATH CARGO_HOME=/usr/local/cargo RUSTUP_HOME=/usr
 RUN rustup component add rustfmt clippy --toolchain 1.90.0
 ARG TARGETARCH
 ARG OPENCODE_VERSION=1.19.5
-RUN apt-get update && apt-get install -y --no-install-recommends git python3 ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git python3 ripgrep ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/lab
 COPY app-lab/package*.json ./
 RUN npm ci && npx playwright install --with-deps chromium

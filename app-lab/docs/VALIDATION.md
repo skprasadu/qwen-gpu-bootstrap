@@ -56,7 +56,7 @@ by Git because it contains machine-specific paths. CI uploads its own evidence.
   The full original container check passed after those fixes. Required checks were
   retained. CI artifacts include gate logs and browser screenshots.
 
-## Pending user-run GPU validation
+## Original pending GPU validation (superseded by October 30 trial below)
 
 - The user will rent the GPU and run stages 01, 02 and 03 themselves. No GPU
   deployment, local-Qwen tool-edit/repair run, two-sequence qualification,
@@ -84,3 +84,32 @@ shell entry point without HOME. The regression now passes with HOME absent and
 with a custom home; mocked systemd commands verify explicit HOME propagation for
 tuning and benchmark jobs. All 20 local tests, TypeScript and shell syntax pass.
 This is an environment regression test, not a real systemd/GPU execution test.
+
+## October 30 GPU trial and checkpoint
+
+Inspected actual run `b086d49a-c194-44a2-aa2d-b6d25b91c81f` on the rented NVIDIA RTX
+PRO 6000 Blackwell VM. The run failed in 465 seconds. List candidate 2 passed the
+build/contract checks, all four independent acceptance cases and backend restart,
+then failed host publication. Kanban and Focus hit context overflow before
+independent evaluation. Two concurrent requests were recorded with no queued
+requests or preemptions. See [RESUME.md](RESUME.md) for measurements and archive.
+
+Checkpoint checks passed on this Linux VM:
+
+- Node 24.19.0 controller TypeScript check and **25 tests**. Context-only failure
+  recovery/repair tests use a fake adapter, not a new Qwen run. Relay tests exercise
+  real HTTP request bodies, responses, unavailable upstream and fixed routing.
+- Actual Docker 29.9.2 synthetic networking check with the new relay: reachable
+  host HTTP, binding only to 127.0.0.1, generated-app fixture on only its internal
+  network, retention through normal cleanup, and application/relay restart.
+  The fixture was removed afterward. This used a temporary derivative of the
+  existing toolchain image containing the changed controller source.
+- Installed pinned OpenCode accepted and resolved auto-compaction, pruning and a
+  4,096-token reserve in an offline container. This proves schema compatibility,
+  not prevention of every context overflow.
+- Shell syntax and diff whitespace checks.
+
+No new model generation or complete rebuilt-image/template verification is claimed
+for this checkpoint. Stage 03/CI rebuild the image (including ripgrep) and run the
+unchanged template gates plus the new host-publication check. A fresh real-Qwen
+three-variant run remains required before claiming end-to-end success.

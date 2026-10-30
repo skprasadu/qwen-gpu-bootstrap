@@ -10,7 +10,7 @@ for (const run of await engine.list()) {
   await adapter.cleanup(run, true);
   for (const job of run.jobs) {
     delete job.preview;
-    if (["queued", "generating", "verifying"].includes(job.status))
+    if (["queued", "generating", "verifying", "publishing"].includes(job.status))
       job.status = "interrupted";
   }
   if (run.state === "running") run.state = "interrupted";

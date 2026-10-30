@@ -8,8 +8,10 @@ You may run `npm run typecheck -- --incremental false` in frontend.
 Use accessible controls: New task, Add task, Edit, Edit title, Save, Complete,
 Reopen, Delete. Each displayed task has data-testid="task". Show loading and error
 states. Keep every CRUD action available, including reopening completed tasks.
-List filters: All, Active, Completed. Kanban regions: Active tasks, Completed tasks.
-Focus: one selected active task; Next task and Previous task buttons; Active and
-Completed buttons to access both states. These are the public interaction contract.
+Implement only the variant assigned in your prompt; do not combine all variants.
+For list only: All, Active, Completed filter buttons.
+For kanban only: regions Active tasks and Completed tasks.
+For focus only: one selected active task; Next task and Previous task buttons;
+Active and Completed buttons to access both states. These are the public interaction contract.
 Do not weaken tests or claim a check passed without execution. Finish after writing
 the implementation; the controller will return concrete failures for repair.

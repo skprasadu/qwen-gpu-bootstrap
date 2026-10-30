@@ -12,6 +12,7 @@ import {
   type Evidence,
 } from "../src/engine.ts";
 import { atomicJson } from "../src/files.ts";
+import { ContextOverflow } from "../src/worker.ts";
 class Fake implements Adapter {
   source = "fake-test" as const;
   active = 0;
@@ -107,6 +108,47 @@ test("unchanged repeated failure stops early", async (t) => {
   await engine.start("todo", 1, 2000, 100);
   await engine.active!.done;
   assert.ok((await engine.list())[0].jobs.every((j) => j.attempts === 2));
+});
+test("context overflow verifies saved source and uses a fresh bounded repair without weakening gates", async (t) => {
+  const { engine, fake } = await fixture(t);
+  fake.generate = async () => {
+    throw new ContextOverflow("context exceeded");
+  };
+  fake.result = (j) => ({
+    passed: j.variant === "list" || j.attempts === 2,
+    category: "code",
+    summary: "required behavior missing",
+    required: 4,
+    passedTests: j.variant === "list" || j.attempts === 2 ? 4 : 0,
+    skipped: 0,
+    fingerprint: String(j.attempts),
+  });
+  await engine.start("todo", 2, 2000, 100);
+  await engine.active!.done;
+  const [run] = await engine.list();
+  assert.equal(run.state, "passed");
+  assert.deepEqual(
+    run.jobs.map((j) => j.attempts),
+    [1, 2, 2],
+  );
+  assert.ok(run.jobs.every((j) => j.generationWarnings?.length === j.attempts));
+});
+test("unrelated generation failures stay fatal and preview failures retain passing evidence", async (t) => {
+  const { engine, fake } = await fixture(t);
+  fake.generate = async (_r, j) => {
+    if (j.variant === "kanban") throw Error("docker unavailable");
+  };
+  fake.publish = async () => {
+    throw Error("Readiness timeout");
+  };
+  await engine.start("todo", 2, 2000, 100);
+  await engine.active!.done;
+  const [run] = await engine.list();
+  assert.equal(run.jobs[0].failureStage, "preview");
+  assert.equal(run.jobs[0].history[0].passedTests, 4);
+  assert.equal(run.jobs[1].failureStage, "generation");
+  assert.equal(run.jobs[1].history.length, 0);
+  assert.ok(run.jobs.every((j) => j.status === "failed" && !j.preview));
 });
 test("zero tests and skipped required tests cannot be accepted", async (t) => {
   const { engine, fake } = await fixture(t);

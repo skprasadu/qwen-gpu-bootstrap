@@ -32,6 +32,10 @@ jobs:
       - run: |
           mkdir -p evidence
           docker run --rm --network none --read-only --user 0 --shm-size 1g --tmpfs /tmp:rw,exec,size=6g -v "$PWD/evidence:/evidence" p2i-app-lab:ci /opt/lab/docker/template-check.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+      - run: P2I_IMAGE=p2i-app-lab:ci node app-lab/src/preview-check.ts
       - run: if [ -d evidence ]; then sudo chmod -R a+rX evidence; fi
         if: always()
       - uses: actions/upload-artifact@v4

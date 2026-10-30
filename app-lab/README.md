@@ -9,6 +9,10 @@ response validation. The first slice supports this constrained experiment only.
 for the exact tested boundaries. A passed local template or fake-provider test is
 not an autonomous Qwen run or a GPU throughput measurement.
 
+The October 30 GPU trial exposed context overflow and preview publication failures.
+The [checkpoint/restart guide](docs/RESUME.md) records the evidence and fixes, and
+gives the next bootstrap sequence. A new three-variant Qwen run is still required.
+
 ## Start on the existing GPU VM
 
 On a fresh VM, follow the [root quickstart](../README.md): stage 01, reboot,
@@ -101,6 +105,9 @@ null/unavailable, not zero. No utilization percentage or speedup is guaranteed.
   backend binary. A separate evaluator container owns the tests and evidence; the
   application cannot mount or rewrite them. Runtime and evaluator share only a
   dedicated internal network.
+  A trusted HTTP relay joins that network and Docker's publishing bridge, exposing
+  only the frontend on host loopback. Generated apps have no external network;
+  the relay has no candidate mount. Stage 03 checks host publication separately.
 * Captures accept bounded ordinary source files, reject symlinks/special files,
   and reconstruct protected content from the template. Source fingerprints and
   protected hashes are recorded. Tests require four executed, passing cases with
@@ -113,6 +120,9 @@ null/unavailable, not zero. No utilization percentage or speedup is guaranteed.
   Unchanged repeated failures stop early. Environment failures do not trigger
   speculative application changes. Only verified candidates get preview links;
   partial/failed source and logs remain available in the state directory.
+* Context-only worker failures verify saved source and can enter the existing
+  bounded repair loop with a fresh conversation. Workers use pruning and a 4,096-token
+  compaction reserve. Every independent acceptance gate still has to pass.
 
 The platform owns process lifetimes, readiness, exit codes and cleanup. The model
 does not manage background servers with fragile temporary-shell commands. Required
@@ -231,4 +241,4 @@ in-memory todos. A VM reboot is different from closing VS Code.
 
 Tuning references: [vLLM 0.32 engine flags](https://docs.vllm.ai/en/v0.32.0/configuration/engine_args/)
 and [chunked prefill tuning](https://docs.vllm.ai/en/v0.32.0/configuration/optimization/).
-No Blackwell measurements are bundled; run this sweep on your GPU for actual results.
+The [October 30 checkpoint](docs/RESUME.md) records that VM's measurements; remeasure on different hardware before making performance claims.

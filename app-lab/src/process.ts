@@ -3,6 +3,14 @@ import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
+export class CommandError extends Error {
+  code: number;
+  constructor(file: string, code: number, output: string) {
+    super(`${file} exited ${code}\n${output.slice(-12_000)}`);
+    this.code = code;
+  }
+}
+
 export function stop(child: ChildProcess) {
   if (!child.pid) return;
   try {
@@ -54,8 +62,7 @@ export async function command(
     });
     options.signal?.throwIfAborted();
     if (timedOut) throw new Error(`Timeout: ${file}`);
-    if (code !== 0)
-      throw new Error(`${file} exited ${code}\n${output.slice(-12_000)}`);
+    if (code !== 0) throw new CommandError(file, code, output);
     return output;
   } finally {
     clearTimeout(timer);

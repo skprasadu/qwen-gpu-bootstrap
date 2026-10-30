@@ -2,6 +2,9 @@
 
 ## App Lab: one brief, three todo prototypes
 
+Returning after the October 30 GPU trial? Use the [checkpoint and restart guide](app-lab/docs/RESUME.md)
+for fresh-VM setup, same-disk updates, saved evidence and validation limits.
+
 The App Lab iteration is on **`feat/p2i-app-lab`** while its PR is under review.
 Run the familiar stages as root on your rented Ubuntu VM, then the new stage 03.
 No `sudo` is needed when already logged in as root.

@@ -90,7 +90,7 @@ export function createLabServer(engine: Engine, maximumConcurrency = 1) {
       if (evidence && req.method === "GET") {
         const suffix = decodeURIComponent(evidence[3]);
         if (
-          !/^(?:evidence-\d+\/(?:result\.json|stages\.json|playwright\.json|acceptance\.json|[\w-]+\.log|browser\/[\w./-]+\.(?:png|zip|md))|(?:worker|builder|evaluator|restart-check)-\d+\.log)$/.test(
+          !/^(?:evidence-\d+\/(?:result\.json|stages\.json|playwright\.json|acceptance\.json|[\w-]+\.log|browser\/[\w./-]+\.(?:png|zip|md))|(?:worker|builder|evaluator|restart-check|preview|relay)-\d+\.log)$/.test(
             suffix,
           )
         )
@@ -153,19 +153,23 @@ if (
   for (const run of await engine.list())
     for (const job of run.jobs)
       if (job.preview) {
-        const name = adapter.name(run, job, "preview");
-        const running = (
-          await command("docker", [
-            "inspect",
-            "-f",
-            "{{.State.Running}}",
-            name,
-          ]).catch(() => "")
-        ).trim();
-        if (running !== "true") {
+        const states = await Promise.all(
+          ["preview", "relay"].map(async (kind) =>
+            (
+              await command("docker", [
+                "inspect",
+                "-f",
+                "{{.State.Running}}",
+                adapter.name(run, job, kind),
+              ]).catch(() => "")
+            ).trim(),
+          ),
+        );
+        if (states.some((running) => running !== "true")) {
           delete job.preview;
+          job.failureStage = "preview";
           job.error =
-            "Previously verified preview is no longer running. Evidence retained; start a fresh run to rebuild.";
+            "Previously verified preview or its relay is no longer running. Evidence retained; stop old previews before rebuilding.";
           await engine.save(run);
         }
       }

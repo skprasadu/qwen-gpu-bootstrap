@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile, symlink, chmod } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { command } from "./process.ts";
+import { command, CommandError } from "./process.ts";
+import {
+  ContextOverflow,
+  contextOverflow,
+  workerConfig,
+  workerPrompt,
+} from "./worker.ts";
 import { atomicJson, copyProject, captureSource, hashTree } from "./files.ts";
 import { labRoot } from "./generate.ts";
 import type { Adapter, Run, Job, Evidence } from "./engine.ts";
@@ -116,20 +122,10 @@ export class DockerAdapter implements Adapter {
     await atomicJson(this.path(run, job, "protected.json"), {
       hash: await hashTree(work, true),
     });
-    const config = {
-      model: this.config.model,
-      small_model: this.config.model,
-      autoupdate: false,
-      enabled_providers: ["local"],
-      permission: { "*": "allow", external_directory: "deny" },
-      provider: { local: structuredClone(this.config.provider.local) },
-    };
-    config.provider.local.options = {
-      baseURL: `http://p2i-inference:8001/${run.id}/${job.variant}/v1`,
-      apiKey: "p2i-worker",
-    };
-    config.model = this.config.model;
-    config.small_model = this.config.model;
+    const config = workerConfig(
+      this.config,
+      `http://p2i-inference:8001/${run.id}/${job.variant}/v1`,
+    );
     await writeFile(
       this.path(run, job, "opencode.json"),
       JSON.stringify(config),
@@ -198,43 +194,59 @@ export class DockerAdapter implements Adapter {
   async generate(run: Run, job: Job, signal: AbortSignal) {
     const work = this.path(run, job, "work");
     const previous = job.history.at(-1);
-    const prompt = `Build the ${job.variant} experience for this constrained todo brief: ${run.brief}\nRead AGENTS.md. Implement real frontend/src changes using the generated SDK. No dependency or API changes. ${previous ? "Repair these independent verification failures:\n" + previous.summary : "Implement now; the controller will verify your result."}`;
+    const prompt = workerPrompt(job.variant, run.brief, previous?.summary);
     await writeFile(this.path(run, job, `prompt-${job.attempts}.txt`), prompt);
-    await this.container(
-      run,
-      job,
-      "worker",
-      [
-        "--network",
-        network,
-        "--read-only",
-        "--user",
-        "10001:10001",
-        "--memory",
-        "6g",
-        "--cpus",
-        "2",
-        "--tmpfs",
-        "/tmp:rw,nosuid,size=1g,uid=10001,gid=10001",
-        "--tmpfs",
-        "/home/worker:rw,nosuid,size=1g,uid=10001,gid=10001",
-        "-v",
-        `${work}:/workspace:ro`,
-        "-v",
-        `${work}/frontend/src:/workspace/frontend/src:rw`,
-        "-v",
-        `${this.path(run, job, "opencode.json")}:/run/opencode.json:ro`,
-        "-e",
-        "OPENCODE_CONFIG=/run/opencode.json",
-        "-w",
-        "/workspace",
-        this.image,
-        "/opt/lab/docker/worker.sh",
-        prompt,
-      ],
-      signal,
-      Math.min(900_000, run.deadline - run.reserveMs - Date.now()),
-    );
+    try {
+      await this.container(
+        run,
+        job,
+        "worker",
+        [
+          "--network",
+          network,
+          "--read-only",
+          "--user",
+          "10001:10001",
+          "--memory",
+          "6g",
+          "--cpus",
+          "2",
+          "--tmpfs",
+          "/tmp:rw,nosuid,size=1g,uid=10001,gid=10001",
+          "--tmpfs",
+          "/home/worker:rw,nosuid,size=1g,uid=10001,gid=10001",
+          "-v",
+          `${work}:/workspace:ro`,
+          "-v",
+          `${work}/frontend/src:/workspace/frontend/src:rw`,
+          "-v",
+          `${this.path(run, job, "opencode.json")}:/run/opencode.json:ro`,
+          "-e",
+          "OPENCODE_CONFIG=/run/opencode.json",
+          "-w",
+          "/workspace",
+          this.image,
+          "/opt/lab/docker/worker.sh",
+          prompt,
+        ],
+        signal,
+        Math.min(900_000, run.deadline - run.reserveMs - Date.now()),
+      );
+    } catch (error) {
+      signal.throwIfAborted();
+      if (
+        error instanceof CommandError &&
+        error.code === 1 &&
+        (await contextOverflow(
+          this.path(run, job, `worker-${job.attempts}.log`),
+        ))
+      ) {
+        throw new ContextOverflow(
+          "Worker exceeded the model context limit; verifying saved source before a fresh bounded repair.",
+        );
+      }
+      throw error;
+    }
   }
   async verify(run: Run, job: Job, signal: AbortSignal): Promise<Evidence> {
     const work = this.path(run, job, "work");
@@ -262,7 +274,6 @@ export class DockerAdapter implements Adapter {
     const fingerprint = await hashTree(candidate);
     const appName = this.name(run, job, "preview");
     const evalNetwork = this.name(run, job, "network");
-    const port = 5181 + ["list", "kanban", "focus"].indexOf(job.variant);
     let passed = false;
     try {
       await this.container(
@@ -352,8 +363,6 @@ export class DockerAdapter implements Adapter {
           "--read-only",
           "--tmpfs",
           "/tmp:rw,size=128m,uid=10001",
-          "-p",
-          `127.0.0.1:${port}:5173`,
           "-v",
           `${candidate}:/workspace:ro`,
           this.image,
@@ -466,9 +475,22 @@ export class DockerAdapter implements Adapter {
       return evidence;
     } finally {
       if (!passed) {
+        await this.previewLogs(run, job);
         await command("docker", ["rm", "-f", appName]).catch(() => {});
         await command("docker", ["network", "rm", evalNetwork]).catch(() => {});
       }
+    }
+  }
+  async previewLogs(run: Run, job: Job) {
+    for (const kind of ["preview", "relay"]) {
+      await command(
+        "docker",
+        ["logs", "--tail", "100", this.name(run, job, kind)],
+        {
+          log: this.path(run, job, `${kind}-${job.attempts}.log`),
+          timeout: 10_000,
+        },
+      ).catch(() => {});
     }
   }
   async publish(run: Run, job: Job, signal: AbortSignal) {
@@ -478,12 +500,60 @@ export class DockerAdapter implements Adapter {
     const candidate = evidence.candidate;
     const port = 5181 + ["list", "kanban", "focus"].indexOf(job.variant);
     const name = this.name(run, job, "preview");
+    const relay = this.name(run, job, "relay");
     signal.throwIfAborted();
     try {
+      // Docker 29 does not publish ports for containers on only internal networks.
+      // The trusted relay has no candidate mount and cannot route arbitrary URLs.
+      await command(
+        "docker",
+        [
+          "run",
+          "-d",
+          "--name",
+          relay,
+          "--label",
+          `p2i.run=${run.id}`,
+          "--label",
+          "p2i.role=relay",
+          "--label",
+          `p2i.variant=${job.variant}`,
+          "--restart",
+          "unless-stopped",
+          "--network",
+          "bridge",
+          "--init",
+          "--cap-drop",
+          "ALL",
+          "--security-opt",
+          "no-new-privileges",
+          "--user",
+          "10001:10001",
+          "--memory",
+          "128m",
+          "--pids-limit",
+          "64",
+          "--read-only",
+          "-p",
+          `127.0.0.1:${port}:5173`,
+          this.image,
+          "node",
+          "/opt/lab/src/preview-relay.ts",
+          name,
+        ],
+        { signal },
+      );
+      await command(
+        "docker",
+        ["network", "connect", this.name(run, job, "network"), relay],
+        { signal },
+      );
       const { readiness } = await import("./process.ts");
       await readiness(`http://127.0.0.1:${port}`);
     } catch (error) {
-      await command("docker", ["rm", "-f", name]);
+      await this.previewLogs(run, job);
+      await command("docker", ["rm", "-f", relay]).catch(() => {});
+      await command("docker", ["rm", "-f", name]).catch(() => {});
       throw error;
     }
     await atomicJson(this.path(run, job, "verified.json"), {
@@ -525,7 +595,7 @@ export class DockerAdapter implements Adapter {
       ).trim();
       if (
         previews ||
-        role !== "preview" ||
+        !["preview", "relay"].includes(role) ||
         !run.jobs.some((j) => j.variant === variant && j.status === "passed")
       )
         await command("docker", ["rm", "-f", id]);

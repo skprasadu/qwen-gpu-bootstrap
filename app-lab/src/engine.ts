@@ -2,12 +2,14 @@ import { randomUUID } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { atomicJson } from "./files.ts";
+import { ContextOverflow } from "./worker.ts";
 export const variants = ["list", "kanban", "focus"] as const;
 export type Variant = (typeof variants)[number];
 export type Status =
   | "queued"
   | "generating"
   | "verifying"
+  | "publishing"
   | "passed"
   | "partial"
   | "failed"
@@ -32,6 +34,8 @@ export type Job = {
   finishedAt?: number;
   preview?: number;
   error?: string;
+  failureStage?: "generation" | "verification" | "preview";
+  generationWarnings?: string[];
 };
 export type Run = {
   id: string;
@@ -96,7 +100,11 @@ export class Engine {
       run.error =
         "Controller restarted. Active worker/verifier containers were stopped; saved evidence retained. Submit a fresh run to retry.";
       for (const job of run.jobs)
-        if (["queued", "generating", "verifying"].includes(job.status)) {
+        if (
+          ["queued", "generating", "verifying", "publishing"].includes(
+            job.status,
+          )
+        ) {
           job.status = "interrupted";
           job.finishedAt = Date.now();
         }
@@ -194,6 +202,7 @@ export class Engine {
             }
             job.attempts++;
             job.status = "generating";
+            job.failureStage = "generation";
             await this.save(run);
             const generation = AbortSignal.any([
               abort.signal,
@@ -205,11 +214,19 @@ export class Engine {
               await this.adapter.generate(run, job, generation);
             } catch (error) {
               // A generation-only deadline leaves the reserved verification time.
-              if (abort.signal.aborted || !generation.aborted) throw error;
-              job.error =
-                "Generation budget exhausted; verifying captured source";
+              if (abort.signal.aborted) throw error;
+              if (error instanceof ContextOverflow) {
+                (job.generationWarnings ??= []).push(
+                  `Attempt ${job.attempts}: ${error.message}`,
+                );
+              } else {
+                if (!generation.aborted) throw error;
+                job.error =
+                  "Generation budget exhausted; verifying captured source";
+              }
             }
             job.status = "verifying";
+            job.failureStage = "verification";
             await this.save(run);
             const evidence = await this.adapter.verify(run, job, abort.signal);
             job.history.push(evidence);
@@ -220,9 +237,13 @@ export class Engine {
               evidence.passedTests === evidence.required &&
               evidence.skipped === 0
             ) {
+              job.status = "publishing";
+              job.failureStage = "preview";
+              await this.save(run);
               job.preview = await this.adapter.publish(run, job, abort.signal);
               job.status = "passed";
               delete job.error;
+              delete job.failureStage;
               break;
             }
             job.error = evidence.summary;
@@ -248,7 +269,7 @@ export class Engine {
               : run.state === "interrupted"
                 ? "interrupted"
                 : "failed";
-          job.error = String(error).slice(-12_000);
+          job.error = String(error).slice(0, 12_000);
         } finally {
           job.finishedAt = Date.now();
           await this.save(run);

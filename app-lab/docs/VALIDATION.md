@@ -77,3 +77,10 @@ startup failure rollback and refusal to delete an unrelated replacement containe
 These Docker operations use a fake adapter; no GPU, Docker startup, systemd tuning
 or measured throughput claim is made from these local tests. The GPU-side tune
 command records real qualification evidence and rejects unqualified profiles.
+
+### Transient-service HOME regression
+Reproduced the exact `HOME: unbound variable` failure by launching the actual
+shell entry point without HOME. The regression now passes with HOME absent and
+with a custom home; mocked systemd commands verify explicit HOME propagation for
+tuning and benchmark jobs. All 20 local tests, TypeScript and shell syntax pass.
+This is an environment regression test, not a real systemd/GPU execution test.

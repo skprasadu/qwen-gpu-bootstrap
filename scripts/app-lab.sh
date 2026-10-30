@@ -2,11 +2,18 @@
 set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "$0")/.." && pwd)
 LAB="$ROOT/app-lab"
-export PATH="${HOME}/.local/bin:${HOME}/.cargo/bin:$PATH"
+# Transient system services do not necessarily inherit the login environment.
+APP_LAB_HOME=${HOME:-}
+if [[ -z "$APP_LAB_HOME" ]]; then
+  if [[ $(id -u) == 0 ]]; then APP_LAB_HOME=/root
+  else APP_LAB_HOME=$(getent passwd "$(id -u)" | cut -d: -f6); fi
+fi
+[[ "$APP_LAB_HOME" == /* ]] || { echo 'Cannot resolve an absolute account home directory.' >&2; exit 1; }
+export PATH="${APP_LAB_HOME}/.local/bin:${APP_LAB_HOME}/.cargo/bin:$PATH"
 export P2I_STATE="${P2I_STATE:-/home/user/my-applications/p2i-app-lab-state}"
 export P2I_IMAGE="${P2I_IMAGE:-p2i-app-lab:local}"
 export P2I_MODEL_CONTAINER="${P2I_MODEL_CONTAINER:-qwen-coder}"
-export P2I_OPENCODE_CONFIG="${P2I_OPENCODE_CONFIG:-${HOME}/.local/share/qwen-bootstrap/opencode.json}"
+export P2I_OPENCODE_CONFIG="${P2I_OPENCODE_CONFIG:-${APP_LAB_HOME}/.local/share/qwen-bootstrap/opencode.json}"
 action=${1:-status}
 shift || true
 case "$action" in
@@ -30,7 +37,7 @@ case "$action" in
   [[ $(id -u) == 0 ]] || { echo 'Run as root on the GPU VM.' >&2; exit 1; }
   unit=/etc/systemd/system/p2i-app-lab.service
   if [[ -f "$unit" ]] && ! grep -q '# Managed by P2I App Lab' "$unit"; then echo 'Refusing to replace an unrelated systemd unit.' >&2; exit 1; fi
-  for value in "$LAB" "$P2I_STATE" "$P2I_IMAGE" "$P2I_OPENCODE_CONFIG" "$P2I_MODEL_CONTAINER"; do [[ "$value" != *$'\n'* && "$value" != *'"'* ]] || { echo 'Unsupported quote/newline in configuration path.' >&2; exit 1; }; done
+  for value in "$LAB" "$P2I_STATE" "$P2I_IMAGE" "$P2I_OPENCODE_CONFIG" "$P2I_MODEL_CONTAINER" "$APP_LAB_HOME"; do [[ "$value" != *$'\n'* && "$value" != *'"'* ]] || { echo 'Unsupported quote/newline in configuration path.' >&2; exit 1; }; done
   cat > "$unit" <<EOF
 # Managed by P2I App Lab
 [Unit]
@@ -41,6 +48,7 @@ Requires=docker.service
 Type=simple
 User=root
 WorkingDirectory=$LAB
+Environment="HOME=$APP_LAB_HOME"
 Environment="PATH=$PATH"
 Environment="P2I_STATE=$P2I_STATE"
 Environment="P2I_IMAGE=$P2I_IMAGE"
@@ -69,7 +77,7 @@ EOF
   # Require a reachable, idle controller before taking it offline.
   node --input-type=module -e 'const r=await fetch("http://127.0.0.1:5173/api/runs"); if(!r.ok)throw Error("Dashboard unavailable"); const d=await r.json(); if(d.runs.some(r=>r.state==="running"))throw Error("Wait for the current run to finish before tuning")'
   systemd-run --unit=p2i-app-lab-tune --collect --property="WorkingDirectory=$ROOT" \
-    --setenv="PATH=$PATH" --setenv="P2I_STATE=$P2I_STATE" --setenv="P2I_IMAGE=$P2I_IMAGE" \
+    --setenv="HOME=$APP_LAB_HOME" --setenv="PATH=$PATH" --setenv="P2I_STATE=$P2I_STATE" --setenv="P2I_IMAGE=$P2I_IMAGE" \
     --setenv="P2I_OPENCODE_CONFIG=$P2I_OPENCODE_CONFIG" --setenv="P2I_MODEL_CONTAINER=$P2I_MODEL_CONTAINER" \
     /bin/bash "$ROOT/scripts/app-lab.sh" tune-worker "$action"
   echo 'Tuning continues after SSH disconnect. Logs: journalctl -fu p2i-app-lab-tune'
@@ -84,7 +92,7 @@ EOF
  rollback) systemctl stop p2i-app-lab; node "$LAB/src/cleanup.ts"; node "$LAB/src/qualify.ts" --rollback; ;;
  benchmark)
   systemd-run --unit=p2i-app-lab-benchmark --collect --property="WorkingDirectory=$LAB" \
-    --setenv="PATH=$PATH" --setenv="P2I_STATE=$P2I_STATE" "$(command -v node)" "$LAB/src/benchmark.ts"
+    --setenv="HOME=$APP_LAB_HOME" --setenv="PATH=$PATH" --setenv="P2I_STATE=$P2I_STATE" "$(command -v node)" "$LAB/src/benchmark.ts"
   echo 'Comparison continues after SSH disconnect. Logs: journalctl -fu p2i-app-lab-benchmark'
   ;;
  *) echo 'Usage: bash scripts/app-lab.sh setup|up|status|logs|stop|qualify [--enable-two]|benchmark|tune|tune-restore|rollback' >&2; exit 2;;

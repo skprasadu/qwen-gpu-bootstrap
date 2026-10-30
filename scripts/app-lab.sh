@@ -66,7 +66,7 @@ EOF
   systemctl daemon-reload
   systemctl enable p2i-app-lab.service
   systemctl restart p2i-app-lab.service
-  for ((i=0;i<30;i++)); do if curl -fsS --max-time 2 http://127.0.0.1:5173/api/runs >/dev/null; then echo 'App Lab: forward 5173 and previews 5181–5183 in VS Code.'; exit 0; fi; sleep 1; done
+  for ((i=0;i<30;i++)); do if curl -fsS --max-time 2 http://127.0.0.1:5173/api/runs >/dev/null; then echo 'App Lab: forward 5173 and previews 5174–5176 in VS Code.'; exit 0; fi; sleep 1; done
   journalctl -u p2i-app-lab -n 40 --no-pager
   exit 1
   ;;

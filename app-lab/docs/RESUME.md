@@ -58,9 +58,9 @@ checks still apply; GPU VRAM is a separate resource.
 
 Stage 03 now also tests a synthetic preview from the host through the actual
 Docker relay, checking isolation, localhost binding and restart. Setup fails if
-that gate fails. Port 5181 must be available for the check.
+that gate fails. Ports 5174, 5175 and 5176 must be available for the checks.
 
-Forward **5173, 5181, 5182, 5183** in VS Code. Open http://localhost:5173 and submit
+Forward **5173, 5174, 5175, 5176** in VS Code. Open http://localhost:5173 and submit
 a fresh brief with two workers if qualification enables it. The next milestone
 is three independently verified, reachable previews. No tuning sweep is required
 to test correctness. A fresh VM uses the bootstrap baseline; this checkpoint does
@@ -75,21 +75,19 @@ proved all three applications work. Do not treat bootstrap success, GPU tuning,
 or the synthetic networking check as completion of this follow-up.
 
 The user wants the three browser previews at **localhost:5174, :5175 and :5176**.
-The controller currently binds remote preview ports **5181, 5182 and 5183**.
-In VS Code's Ports panel, forward the following remote ports and set their local
-ports with **Change Local Port**:
+The controller binds those same ports on the VM. In VS Code's Ports panel,
+forward each port to the same local port; no port remapping is needed:
 
 | Service | Remote VM port | Local browser port |
 | --- | --- | --- |
 | Dashboard | 5173 | 5173 |
-| Simple List | 5181 | 5174 |
-| Kanban | 5182 | 5175 |
-| Daily Focus | 5183 | 5176 |
+| Simple List | 5174 | 5174 |
+| Kanban | 5175 | 5175 |
+| Daily Focus | 5176 | 5176 |
 
-With this mapping, open http://localhost:5174, http://localhost:5175 and
+Open http://localhost:5174, http://localhost:5175 and
 http://localhost:5176 directly (or use the Ports panel's Open in Browser action).
-The dashboard currently constructs preview links from remote port numbers; its
-links do not automatically detect remapped local ports. Local forwarding alone
+The dashboard preview links use these same port numbers. Local forwarding alone
 cannot repair a failed generation or a preview that was never published.
 
 After startup:

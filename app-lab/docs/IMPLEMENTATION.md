@@ -35,3 +35,10 @@ publication. Worker prompts scope one variant, reserve 4K for compaction and bou
 repair feedback. Structured context-only failures enter verification before a fresh
 bounded repair. UI distinguishes unrun tests from publication failure. Full model
 generation with these fixes remains pending.
+
+### Preview port correction
+
+The actual controller and all setup instructions now use 5174 (List), 5175
+(Kanban) and 5176 (Focus), with dashboard 5173. Remote and local ports match;
+no forwarding workaround is required. The Docker publication check exercises
+all three assigned ports. This does not certify a new Qwen generation run.

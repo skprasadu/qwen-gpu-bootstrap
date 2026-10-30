@@ -38,7 +38,7 @@ for every command. `P2I_IMAGE` and `P2I_MODEL_CONTAINER` can name the actual ima
 and serving container. The supported initial integration is the bootstrap's
 `qwen-coder` container serving privately on host port 8000.
 
-Forward **5173, 5181, 5182 and 5183** in VS Code Remote SSH's Ports panel. Open
+Forward **5173, 5174, 5175 and 5176** in VS Code Remote SSH's Ports panel. Open
 `http://localhost:5173` on your Mac. Submit the brief in the dashboard. It creates
 three variants from one basic frontend; their final implementations are not baked
 into this repository. Only actual independent checks can mark a variant passed.
@@ -230,9 +230,9 @@ A hard VM crash/forced termination may leave `private/tuning.lock`. Once
 container. A second tuning sweep requires restoring the first backup first.
 
 Reconnect through VS Code Remote SSH. In **Ports → Forward a Port**, add **5173,
-5181, 5182, 5183**. No Vast public port/firewall change is needed. Open
+5174, 5175, 5176**. No Vast public port/firewall change is needed. Open
 http://localhost:5173 and use the successful cards' preview links (usually
-http://localhost:5181, http://localhost:5182, http://localhost:5183). If VS Code
+http://localhost:5174, http://localhost:5175, http://localhost:5176). If VS Code
 assigns a different local port, use the address it displays. Failed variants have
 no verified preview. Submit a fresh dashboard run to generate three new variants;
 stop old previews using the dashboard when it requests the ports be released.

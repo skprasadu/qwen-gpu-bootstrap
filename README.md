@@ -36,7 +36,7 @@ plain stage-02 command. This does not change the FP8 model or guarantee that eve
 Stage 03 builds and tests the App Lab environment, attempts a reversible
 two-request serving qualification, and starts the persistent dashboard. If two
 requests are not qualified, the dashboard retains a sequential mode. Forward
-**5173, 5181, 5182, 5183** through VS Code Remote SSH and open
+**5173, 5174, 5175, 5176** through VS Code Remote SSH and open
 **http://localhost:5173** on your Mac. Submit your brief there; App Lab creates
 its run folders and asks local Qwen to produce List, Kanban and Daily Focus views.
 

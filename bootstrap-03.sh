@@ -22,5 +22,5 @@ if [[ ${P2I_QUALIFY_TWO:-1} == 1 ]]; then
   fi
 fi
 bash "$ROOT/scripts/app-lab.sh" up
-echo 'App Lab is ready. Forward 5173 and 5181–5183 in VS Code, then open http://localhost:5173.'
+echo 'App Lab is ready. Forward 5173 and 5174–5176 in VS Code, then open http://localhost:5173.'
 echo 'Submit one brief in the dashboard. The controller runs the three variants and reports actual checks.'

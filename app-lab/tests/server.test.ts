@@ -23,7 +23,7 @@ test("private dashboard rejects cross-origin mutations, invalid host and unquali
       };
     },
     async publish() {
-      return 5181;
+      return 5174;
     },
     async cleanup() {},
   };

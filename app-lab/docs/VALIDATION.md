@@ -113,3 +113,10 @@ No new model generation or complete rebuilt-image/template verification is claim
 for this checkpoint. Stage 03/CI rebuild the image (including ripgrep) and run the
 unchanged template gates plus the new host-publication check. A fresh real-Qwen
 three-variant run remains required before claiming end-to-end success.
+
+### Preview ports 5174–5176
+
+After correcting the actual controller ports, TypeScript and all 25 tests passed.
+The Docker publication check passed separately for List on 5174, Kanban on 5175
+and Focus on 5176, including host HTTP, loopback binding, isolation, retention and
+restart for each. These were synthetic fixtures, not a new Qwen generation run.

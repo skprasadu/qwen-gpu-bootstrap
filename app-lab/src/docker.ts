@@ -498,7 +498,7 @@ export class DockerAdapter implements Adapter {
     if (!evidence?.passed || !evidence.candidate)
       throw new Error("No verified candidate");
     const candidate = evidence.candidate;
-    const port = 5181 + ["list", "kanban", "focus"].indexOf(job.variant);
+    const port = 5174 + ["list", "kanban", "focus"].indexOf(job.variant);
     const name = this.name(run, job, "preview");
     const relay = this.name(run, job, "relay");
     signal.throwIfAborted();

@@ -67,6 +67,45 @@ to test correctness. A fresh VM uses the bootstrap baseline; this checkpoint doe
 not transplant the old tuning profile or assume identical new-hardware performance.
 Optional tuning comes after functionality works.
 
+## Required follow-up after starting the server
+
+**All three Todo jobs in the October 30 run were FAILED. This remains an unresolved
+end-to-end milestone.** Fixes were pushed, but no subsequent real-Qwen run has
+proved all three applications work. Do not treat bootstrap success, GPU tuning,
+or the synthetic networking check as completion of this follow-up.
+
+The user wants the three browser previews at **localhost:5174, :5175 and :5176**.
+The controller currently binds remote preview ports **5181, 5182 and 5183**.
+In VS Code's Ports panel, forward the following remote ports and set their local
+ports with **Change Local Port**:
+
+| Service | Remote VM port | Local browser port |
+| --- | --- | --- |
+| Dashboard | 5173 | 5173 |
+| Simple List | 5181 | 5174 |
+| Kanban | 5182 | 5175 |
+| Daily Focus | 5183 | 5176 |
+
+With this mapping, open http://localhost:5174, http://localhost:5175 and
+http://localhost:5176 directly (or use the Ports panel's Open in Browser action).
+The dashboard currently constructs preview links from remote port numbers; its
+links do not automatically detect remapped local ports. Local forwarding alone
+cannot repair a failed generation or a preview that was never published.
+
+After startup:
+
+1. Confirm the updated stage-03 host-publication check passes. If it fails, repair
+   the preview/relay path and inspect its saved logs before starting generation.
+2. Submit a fresh three-variant Qwen run. Verify that context overflow is either
+   avoided or recovered through the bounded verification/repair loop. Investigate
+   and fix any remaining generation, code or publishing errors; retain all gates.
+3. Require **all three cards to pass**, with four executed acceptance cases each,
+   successful builds and reachable previews. The original List's 4/4 result alone
+   did not satisfy this: publishing failed. Kanban/Focus never reached acceptance.
+4. Open all three requested local URLs and exercise create, edit, complete/reopen
+   and delete, plus each variant's behavior. Record actual results and unresolved
+   errors. Do not report the task complete until all three previews work.
+
 ## Same VM with its disk preserved
 
 Do not rerun stages 01/02 just to update App Lab. Stage 02 must not overwrite a

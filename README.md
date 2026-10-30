@@ -1,5 +1,54 @@
 # Qwen coding VM bootstrap
 
+## App Lab: one brief, three todo prototypes
+
+Returning after the October 30 GPU trial? Use the [checkpoint and restart guide](app-lab/docs/RESUME.md)
+for fresh-VM setup, same-disk updates, saved evidence and validation limits.
+
+The App Lab iteration is on **`feat/p2i-app-lab`** while its PR is under review.
+Run the familiar stages as root on your rented Ubuntu VM, then the new stage 03.
+No `sudo` is needed when already logged in as root.
+
+```bash
+apt-get update
+apt-get install -y git
+mkdir -p /home/user/my-applications
+cd /home/user/my-applications
+git clone --branch feat/p2i-app-lab https://github.com/skprasadu/qwen-gpu-bootstrap.git
+cd qwen-gpu-bootstrap
+bash bootstrap-01.sh
+reboot
+```
+
+Reconnect as root, then:
+
+```bash
+cd /home/user/my-applications/qwen-gpu-bootstrap
+bash bootstrap-02.sh
+bash bootstrap-03.sh
+```
+
+For the previously used **96GiB host-RAM** instance, stage 02 retains the existing
+explicit opt-in: use `QWEN_ALLOW_LOW_RAM=1 bash bootstrap-02.sh` in place of the
+plain stage-02 command. This does not change the FP8 model or guarantee that every
+96GiB machine will load it. A machine with >=128GB host RAM uses the normal command.
+
+Stage 03 builds and tests the App Lab environment, attempts a reversible
+two-request serving qualification, and starts the persistent dashboard. If two
+requests are not qualified, the dashboard retains a sequential mode. Forward
+**5173, 5174, 5175, 5176** through VS Code Remote SSH and open
+**http://localhost:5173** on your Mac. Submit your brief there; App Lab creates
+its run folders and asks local Qwen to produce List, Kanban and Daily Focus views.
+
+If stages 01 and 02 already work, run **only `bash bootstrap-03.sh`** for App Lab.
+To preserve the current serving profile during setup, use
+`P2I_QUALIFY_TWO=0 bash bootstrap-03.sh` and qualify concurrency later.
+Read [App Lab instructions](app-lab/README.md) for status, updates, comparison and
+rollback. [Validation](app-lab/docs/VALIDATION.md) distinguishes local/CI checks
+from the GPU trial you will run after rental.
+
+## Original bootstrap requirements
+
 A two-stage setup for a **true Ubuntu 22.04/24.04 x86_64 VM or bare-metal host**,
 one NVIDIA RTX PRO 6000 Blackwell 96GB, a root SSH account, >=128GB RAM,
 >=250GB recommended free on the home filesystem and >=40GB on Docker storage.
@@ -62,7 +111,7 @@ Extract this release into a NEW bootstrap directory and run from that directory:
 
 ```bash
 bash scripts/install-rust-loop.sh
-bash scripts/enable-rust-loop.sh /root/my-applications/todo-app
+bash scripts/enable-rust-loop.sh /home/user/my-applications/todo-app
 ```
 
 The first command installs the root Rust controller and rustfmt/Clippy. The second
@@ -72,8 +121,8 @@ container; you do not need to rerun stage 1 or 2 just to enable this iteration.
 
 ```bash
 source /root/.profile
-/root/.local/bin/rust-loop check --project /root/my-applications/todo-app/backend
-/root/.local/bin/rust-loop repair --project /root/my-applications/todo-app/backend --max-attempts 3
+/root/.local/bin/rust-loop check --project /home/user/my-applications/todo-app/backend
+/root/.local/bin/rust-loop repair --project /home/user/my-applications/todo-app/backend --max-attempts 3
 ```
 
 Close/reopen the OpenCode chat after updating AGENTS.md so it loads the new rules.
@@ -86,8 +135,8 @@ To test real Qwen-driven Rust repair independently:
 ## Create your application
 
 ```bash
-./scripts/new-app.sh "$HOME/my-applications/todo-app"
-cd "$HOME/my-applications/todo-app"
+./scripts/new-app.sh "/home/user/my-applications/todo-app"
+cd "/home/user/my-applications/todo-app"
 opencode
 ```
 
